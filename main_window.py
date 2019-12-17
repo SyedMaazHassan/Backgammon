@@ -3,7 +3,12 @@ import random
 
 #initializing pygame
 pg.init()
+size = (900, 900)  #a tuple of size (width, height)
+screen = pg.display.set_mode(size)
+background_image = pg.image.load("img/main_back.png")
 
+
+#for positioning of pieces the key
 def position(x, y):
     x = x
     y = y
@@ -20,12 +25,58 @@ def position(x, y):
 
     return (X, Y)
 
-size = (900, 900)  #a tuple of size (width, height)
+#for column_stack positioning (for top part)
+def stack_column_position_top(x):
+    extra = 0
+    if x >= 7:
+        x += 1
 
-screen = pg.display.set_mode(size)
-background_image = pg.image.load("img/main_back.png")
+    x = x-1
+    x = 12-x+1
 
 
+    c_x_t_l = 88+(56*(x-1))
+    c_x_t_r = c_x_t_l+56
+    c_x_b_r = c_x_t_l+28
+    c_x_b_l = c_x_b_r
+    c_y_t_l = 161
+    c_y_t_r = c_y_t_l
+    c_y_b_r = c_y_t_l+339
+    c_y_b_l = c_y_b_r
+
+
+    top_left = (c_x_t_l, c_y_t_l+extra)
+    top_right = (c_x_t_r, c_y_t_r+extra)
+    bottom_right = (c_x_b_r, c_y_b_r+extra)
+    bottom_left = (c_x_b_l, c_y_b_l+extra)
+
+    return (bottom_left, top_left, top_right, bottom_right)
+
+#for column_stack positioning (for bottom part)
+def stack_column_position_bottom(x):
+    x = x-12
+    extra = 352
+    if x >= 7:
+        x += 1
+
+    c_x_t_l = 88+(56*(x-1))
+    c_x_t_r = c_x_t_l+56
+    c_x_b_r = c_x_t_l+28
+    c_x_b_l = c_x_b_r
+    c_y_t_l = 161
+    c_y_t_r = c_y_t_l
+    c_y_b_r = c_y_t_l+339
+    c_y_b_l = c_y_b_r
+
+
+    top_left = (c_x_t_l, c_y_t_l+extra+339)
+    top_right = (c_x_t_r, c_y_t_r+extra+339)
+    bottom_right = (c_x_b_r, c_y_b_r+extra-339)
+    bottom_left = (c_x_b_l, c_y_b_l+extra-339)
+
+    return (bottom_left, top_left, top_right, bottom_right)
+
+#dice tolling list
 L = ["img/you_dice_1.png",
      "img/you_dice_2.png",
      "img/you_dice_3.png",
@@ -33,7 +84,6 @@ L = ["img/you_dice_1.png",
      "img/you_dice_5.png",
      "img/you_dice_6.png"
      ]
-
 L_e = 0
 
 class black_piece:
@@ -42,6 +92,7 @@ class black_piece:
         self.co_ordinate = co_ordinates
         self.X = self.co_ordinate[0]
         self.Y = self.co_ordinate[1]
+        self.id = "black"
 
 class white_piece:
     def __init__(self, co_ordinates):
@@ -49,22 +100,25 @@ class white_piece:
         self.co_ordinate = co_ordinates
         self.X = self.co_ordinate[0]
         self.Y = self.co_ordinate[1]
+        self.id = "black"
+
 
     def move(self, new_x, new_y):
         self.co_ordinate = position(new_x, new_y)
         self.X = self.co_ordinate[0]
         self.Y = self.co_ordinate[1]
 
-        # while self.X != a and self.Y != b:
-        #     if self.X < a:
-        #         self.X += 1
-        #     elif self.X > a:
-        #         self.X -= 1
-        #
-        #     if self.Y < b:
-        #         self.Y += 1
-        #     elif self.Y > b:
-        #         self.Y -= 1
+#for column stack class
+class column_stack:
+    def __init__(self, location):
+        self.elements = []
+        function = None
+        if location < 13:
+            function = stack_column_position_top(location)
+        else:
+            function = stack_column_position_bottom(location)
+        self.visible = pg.draw.polygon(screen, (0, 225, 0), function, 2)
+
 
 
 #black pieces
@@ -110,11 +164,7 @@ white_piece14 = white_piece(position(11,10))
 white_piece15 = white_piece(position(11,11))
 
 
-
-
-
 speed = 2.1
-
 running = True
 
 while running:
@@ -128,7 +178,6 @@ while running:
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_RIGHT:
                 white_piece1.move(1,1)
-
 
 
     screen.blit(black_piece1.image, black_piece1.co_ordinate)
@@ -163,7 +212,11 @@ while running:
     screen.blit(white_piece14.image, white_piece14.co_ordinate)
     screen.blit(white_piece15.image, white_piece15.co_ordinate)
 
+    for i in range(1, 13):
+        top_stack = column_stack(i)
 
+    for i in range(13, 25):
+        bottom_stack = column_stack(i)
 
     screen.blit(pg.image.load(L[L_e]), (0,180))
     if L_e < 5:
