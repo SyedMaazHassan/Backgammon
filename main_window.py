@@ -134,25 +134,32 @@ def write_in_file(content, file_name):
 
 def get_from_file(file_name = "txt/dice_saving.txt"):
     file = open(file_name, "r")
-    a = file.read()[0]
-    b = file.read()[-1]
+    a = file.read().split()#file.read()[-1]
     file.close()
-    return (int(a), int(b))
+    return (int(a[0]), int(a[-1]))
 
 #highlighting the keys
 def light_white_keys():
+    light_piece = None
     for i in all_stack_list:
-        light_piece = i.elements[-1]
-        if light_piece and light_piece.id == "white":
-            light_piece.image = pg.image.load("img/white_highlight.png")
-            white_light_pieces.append(light_piece)
+
+        if i.elements:
+            light_piece = i.elements[-1]
+
+            if light_piece and light_piece.id == "white":
+                light_piece.image = pg.image.load("img/white_highlight.png")
+                white_light_pieces.append([i, light_piece])
 
 def light_black_keys():
+    light_piece = None
     for i in all_stack_list:
-        light_piece = i.elements[-1]
-        if light_piece and light_piece.id == "black":
-            light_piece.image = pg.image.load("img/black_highlight.png")
-            black_light_pieces.append(light_piece)
+
+        if i.elements:
+            light_piece = i.elements[-1]
+
+            if light_piece and light_piece.id == "black":
+                light_piece.image = pg.image.load("img/black_highlight.png")
+                black_light_pieces.append(light_piece)
 
 #dice tolling list
 you_dice = [
@@ -180,20 +187,24 @@ black_light_pieces = [ ]
 L_e = 0
 
 class black_piece:
-    def __init__(self, co_ordinates):
+    def __init__(self, co_ordinates = None):
         self.image = pg.image.load("img/black_got.png")
         self.co_ordinate = co_ordinates
-        self.X = self.co_ordinate[0]
-        self.Y = self.co_ordinate[1]
+        self.id = "black"
+        if self.co_ordinate is not None:
+            self.X = self.co_ordinate[0]
+            self.Y = self.co_ordinate[1]
         self.id = "black"
 
 class white_piece:
-    def __init__(self, co_ordinates):
+    def __init__(self, co_ordinates = None):
         self.image = pg.image.load("img/white_got.png")
         self.co_ordinate = co_ordinates
-        self.X = self.co_ordinate[0]
-        self.Y = self.co_ordinate[1]
         self.id = "white"
+
+        if self.co_ordinate is not None:
+            self.X = self.co_ordinate[0]
+            self.Y = self.co_ordinate[1]
 
 
     def move(self, new_x, new_y):
@@ -204,7 +215,27 @@ class white_piece:
 #for column stack class
 class column_stack:
     def __init__(self, location, *initial_pieces):
-        self.elements = list(initial_pieces)
+        self.initial_pieces = initial_pieces
+        self.location = location
+        self.connected = []
+        self.elements = []
+        if self.initial_pieces[0] is not None:
+            self.elements = list(initial_pieces)
+        self.positions = []
+
+        my_range = None
+        pos_x = None
+
+        if location < 13:
+            my_range = range(0, 6)
+            pos_x = 12 - location
+        else:
+            my_range = range(11, 5, -1)
+            pos_x = location - 1 - 12
+
+        for i in my_range:
+            self.positions.append(position(pos_x, i))
+
         function = None
         if location < 13:
             function = stack_column_position_top(location)
@@ -212,7 +243,52 @@ class column_stack:
             function = stack_column_position_bottom(location)
         self.visible = pg.draw.polygon(screen, (0, 225, 0), function, 2)
 
+        self.connection()
+
+        self.updating()
+
+
     # def highlight_destination(self):
+    def connection(self):
+        length = len(self.elements)
+
+        for i in range(0, 6):
+            if length > 0:
+                self.connected.append([self.elements[i], self.positions[i]])
+                length -= 1
+            else:
+                self.connected.append([None, self.positions[i]])
+
+    def updating(self):
+        for i in self.connected:
+            if i[0] is not None:
+                i[0].co_ordinate = i[1]
+
+    def remove_piece(self): #poping
+        if len(self.elements) > 0:
+            deleted_piece = self.elements.pop()
+            self.connection()
+            self.updating()
+            return deleted_piece
+        else:
+            "can't delete from empty stack"
+
+    def add_piece(self, piece_to_add): #pushing
+        if len(self.elements) <= 6:
+            self.elements.append(piece_to_add)
+            self.connection()
+            self.updating()
+        else:
+            "stack is full"
+
+    def receiving_light(self):
+        if len(self.elements) == 0 or self.elements[0].id == "white" and len(self.elements) <= 6 or self.elements[0].id == "black" and len(self.elements) == 1:
+            if self.location < 13:
+                light_image = destination
+                screen.blit(light_image, position(12-self.location,0))
+            else:
+                light_image = destination_bottom
+                screen.blit(light_image, position(self.location-1-12,7))
 
 
 
@@ -236,45 +312,45 @@ dice2_cpu = cpu_dice(blank_cpu)
 
 #black pieces
 
-black_piece1 = black_piece(position(6,7))#co-ordinates (x, y)
-black_piece2 = black_piece(position(6,8))
-black_piece3 = black_piece(position(6,9))
-black_piece4 = black_piece(position(6,10))
-black_piece5 = black_piece(position(6,11))
+black_piece1 = black_piece()#co-ordinates (x, y)
+black_piece2 = black_piece()
+black_piece3 = black_piece()
+black_piece4 = black_piece()
+black_piece5 = black_piece()
 
-black_piece6 = black_piece(position(4,9))
-black_piece7 = black_piece(position(4,10))
-black_piece8 = black_piece(position(4,11))
+black_piece6 = black_piece()
+black_piece7 = black_piece()
+black_piece8 = black_piece()
 
-black_piece9 = black_piece(position(0,0))
-black_piece10 = black_piece(position(0,1))
-black_piece11 = black_piece(position(0,2))
-black_piece12 = black_piece(position(0,3))
-black_piece13 = black_piece(position(0,4))
+black_piece9 = black_piece()
+black_piece10 = black_piece()
+black_piece11 = black_piece()
+black_piece12 = black_piece()
+black_piece13 = black_piece()
 
-black_piece14 = black_piece(position(11,0))
-black_piece15 = black_piece(position(11,1))
+black_piece14 = black_piece()
+black_piece15 = black_piece()
 
 #white pieces
 
-white_piece1 = white_piece(position(6,0))
-white_piece2 = white_piece(position(6,1))
-white_piece3 = white_piece(position(6,2))
-white_piece4 = white_piece(position(6,3))
-white_piece5 = white_piece(position(6,4))
+white_piece1 = white_piece()
+white_piece2 = white_piece()
+white_piece3 = white_piece()
+white_piece4 = white_piece()
+white_piece5 = white_piece()
 
-white_piece6 = white_piece(position(4,0))
-white_piece7 = white_piece(position(4,1))
-white_piece8 = white_piece(position(4,2))
+white_piece6 = white_piece()
+white_piece7 = white_piece()
+white_piece8 = white_piece()
 
-white_piece9 = white_piece(position(0,7))
-white_piece10 = white_piece(position(0,8))
-white_piece11 = white_piece(position(0,9))
-white_piece12 = white_piece(position(0,10))
-white_piece13 = white_piece(position(0,11))
+white_piece9 = white_piece()
+white_piece10 = white_piece()
+white_piece11 = white_piece()
+white_piece12 = white_piece()
+white_piece13 = white_piece()
 
-white_piece14 = white_piece(position(11,10))
-white_piece15 = white_piece(position(11,11))
+white_piece14 = white_piece()
+white_piece15 = white_piece()
 
 
 #dice button width = 45px, height = 120px
@@ -316,21 +392,69 @@ stack22 = column_stack(22, None)
 stack23 = column_stack(23, None)
 stack24 = column_stack(24, white_piece15, white_piece14)
 
+
 all_stack_list = [
     stack1, stack2, stack3, stack4, stack5, stack6, stack7, stack8, stack9, stack10, stack11, stack12,
     stack13, stack14, stack15, stack16, stack17, stack18, stack19, stack20, stack21, stack22, stack23, stack24
 ]
 
+all_stack_dict = {
+    1: stack1,
+    2: stack2,
+    3: stack3,
+    4: stack4,
+    5: stack5,
+    6: stack6,
+    7: stack7,
+    8: stack8,
+    9: stack9,
+    10: stack10,
+    11: stack11,
+    12: stack12,
+    13: stack13,
+    14: stack14,
+    15: stack15,
+    16: stack16,
+    17: stack17,
+    18: stack18,
+    19: stack19,
+    20: stack20,
+    21: stack21,
+    22: stack22,
+    23: stack23,
+    24: stack24
+}
+#to move piece
+def move():
+    #first poping from current stack
+    deleted_piece = stack6.remove_piece()
+    stack5.add_piece(deleted_piece)
+
+    deleted_piece = stack8.remove_piece()
+    stack7.add_piece(deleted_piece)
+
+    #then push in desired stack
+#move()
+#move()
+
+destination_bottom = pg.image.load("img/destination_light_bottom.png")
+destination = pg.image.load("img/destination_light.png")
+turn_light = pg.image.load("img/turn_light.png")
+
 you_dice_rolled = False
 temppp = 0
 temp = 0
-turn = "cpu"
+turn = "you"
 speed = 2.1
 running = True
 
 
+print(stack1.connected)
 
 while running:
+    # print(len(white_light_pieces))
+
+
     mouse = pg.mouse.get_pos()
     click = pg.mouse.get_pressed()
     print(mouse)
@@ -348,6 +472,12 @@ while running:
             if event.button == 1:
                 light_white_keys()
                 you_dice_rolled = True
+
+        # if turn == "you" and len(white_light_pieces) > 0:
+        #     for i in white_light_pieces:
+        #         if event.type == pg.MOUSEBUTTONUP and click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0]+56 and i[1].co_ordinate[1] <= mouse[1] <= i[1].co_ordinate[1]+56:
+        #             if event.button == 1:
+        #                 turn = "cpu"
 
 
 
@@ -384,6 +514,13 @@ while running:
     screen.blit(white_piece14.image, white_piece14.co_ordinate)
     screen.blit(white_piece15.image, white_piece15.co_ordinate)
 
+    # to turn on the light of turn
+    if turn == "you":
+        screen.blit(turn_light, (328, 6))
+    else:
+        screen.blit(turn_light, (490, 6))
+
+
     if turn == "you" and you_dice_rolled == False:
         if 840 <= mouse[0] <= 885 and 440 <= mouse[1] <= 560:
             screen.blit(active_dice_button, (840, 440))
@@ -394,23 +531,27 @@ while running:
     elif turn == "cpu":
         if temp == 0:
             a = cpu_dice_value()
-            if temppp != 15:
+            if temppp != 20:
                 temppp +=1
             else:
                 write_in_file(a, "txt/cpu_dice_saving.txt")
                 temp = 1
                 light_black_keys()
 
-
-
-
-
-
-
-
-
-
-
+    if turn == "you" and len(white_light_pieces) > 0 and you_dice_rolled == True:
+        dice_player = get_from_file()
+        print(dice_player)
+        for i in white_light_pieces:
+            if click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0]+56 and i[1].co_ordinate[1] <= mouse[1] <= i[1].co_ordinate[1]+56:
+                d1 , d2 = i[0].location-dice_player[0] , i[0].location-dice_player[1]
+                if d1 > 0:
+                    all_stack_dict[d1].receiving_light()
+                else:
+                    print("no move possible for this piece")
+                if d2 > 0:
+                    all_stack_dict[d2].receiving_light()
+                else:
+                    print("no move possible for this piece")
 
     screen.blit(dice1.my_dice, (2, 650))
     screen.blit(dice2.my_dice, (2, 720))
@@ -418,10 +559,12 @@ while running:
     screen.blit(dice1_cpu.my_dice, (2, 210))
     screen.blit(dice2_cpu.my_dice, (2, 285))
 
+    # screen.blit(destination, position(0, 7))
 
 
-    # for i in range(1, 25):
-    #     top_stack = column_stack(i)
+
+
+
 
 
     # for i in range(13, 25):
