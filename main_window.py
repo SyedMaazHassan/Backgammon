@@ -139,27 +139,25 @@ def get_from_file(file_name = "txt/dice_saving.txt"):
     return (int(a[0]), int(a[-1]))
 
 #highlighting the keys
-def light_white_keys():
+def light_white_keys(w):
     light_piece = None
-    for i in all_stack_list:
+    for i in w:
+        i[1].image = pg.image.load("img/white_highlight.png")
 
-        if i.elements:
-            light_piece = i.elements[-1]
+    white_light_pieces = L
+                # white_light_pieces.append([i, light_piece])
 
-            if light_piece and light_piece.id == "white":
-                light_piece.image = pg.image.load("img/white_highlight.png")
-                white_light_pieces.append([i, light_piece])
-
-def light_black_keys():
+def light_black_keys(stack_list):
     light_piece = None
-    for i in all_stack_list:
+    for i in stack_list:
+        i[1].image = pg.image.load("img/black_highlight.png")
 
-        if i.elements:
-            light_piece = i.elements[-1]
+def turn_on_the_turn_light(which_player):
+    if which_player == "you":
+        screen.blit(turn_light, (328, 6))
+    else:
+        screen.blit(turn_light, (490, 6))
 
-            if light_piece and light_piece.id == "black":
-                light_piece.image = pg.image.load("img/black_highlight.png")
-                black_light_pieces.append(light_piece)
 
 #dice tolling list
 you_dice = [
@@ -181,8 +179,11 @@ cpu_dice_list = [
      ]
 
 white_light_pieces = [ ]
+white_legal_destination = [ ]
 
 black_light_pieces = [ ]
+black_legal_destination = [ ]
+
 
 L_e = 0
 
@@ -265,30 +266,65 @@ class column_stack:
                 i[0].co_ordinate = i[1]
 
     def remove_piece(self): #poping
+        print(len(self.elements))
         if len(self.elements) > 0:
             deleted_piece = self.elements.pop()
+            for i in self.connected:
+                if i[0] == deleted_piece:
+                    i[0] = None
+
             self.connection()
             self.updating()
+
             return deleted_piece
         else:
             "can't delete from empty stack"
+        print(len(self.elements))
 
     def add_piece(self, piece_to_add): #pushing
+        print(self.connected)
         if len(self.elements) <= 6:
+
             self.elements.append(piece_to_add)
+            tteemmpp = []
+            for i in range(0, 6):
+                if i+1 <= len(self.elements):
+                    tteemmpp.append([self.elements[i], self.positions[i]])
+                else:
+                    tteemmpp.append([None, self.positions[i]])
+            self.connected = tteemmpp
             self.connection()
             self.updating()
         else:
             "stack is full"
+        print(" ")
+        print(self.connected)
 
-    def receiving_light(self):
-        if len(self.elements) == 0 or self.elements[0].id == "white" and len(self.elements) <= 6 or self.elements[0].id == "black" and len(self.elements) == 1:
+    def receiving_light(self, which_piece):
+        opponent = None
+        if which_piece == "white":
+            opponent = "black"
+        else:
+            opponent = "white"
+
+        if (len(self.elements) == 0) or (len(self.elements) == 1 and self.elements[0].id == opponent) or (len(self.elements) <= 6 and self.elements[0].id == which_piece):
             if self.location < 13:
                 light_image = destination
                 screen.blit(light_image, position(12-self.location,0))
             else:
                 light_image = destination_bottom
                 screen.blit(light_image, position(self.location-1-12,7))
+            return "on"
+
+    def checking_receiving_light(self, which_piece):
+        opponent = None
+        if which_piece == "white":
+            opponent = "black"
+        else:
+            opponent = "white"
+
+        if (len(self.elements) == 0) or (len(self.elements) == 1 and self.elements[0].id == opponent) or (len(self.elements) <= 6 and self.elements[0].id == which_piece):
+            return "on"
 
 
 
@@ -300,6 +336,8 @@ class cpu_dice:
 
 blank_cpu = "img/blank_cpu.png"
 blank = "img/blank.png"
+
+
 class player_dice:
     def __init__(self, pic):
         self.my_dice = pg.image.load(pic)
@@ -425,39 +463,91 @@ all_stack_dict = {
     24: stack24
 }
 #to move piece
-def move():
+def move(FROM, to):
     #first poping from current stack
-    deleted_piece = stack6.remove_piece()
-    stack5.add_piece(deleted_piece)
+    deleted_piece = FROM.remove_piece()
 
-    deleted_piece = stack8.remove_piece()
-    stack7.add_piece(deleted_piece)
+    print(white_light_pieces)
+    consideration = None
+
+    if turn == "you":
+        consideration = white_light_pieces
+    else:
+        consideration = black_light_pieces
+
+    for i in consideration:
+        if i[1] == deleted_piece:
+            del i
+
+    to.add_piece(deleted_piece)
+    print(len(to.elements))
+    print("length of white ligth pieces = ", len(white_light_pieces))
+    consideration.append([to, deleted_piece])
+
 
     #then push in desired stack
 #move()
 #move()
+empty = []
 
 destination_bottom = pg.image.load("img/destination_light_bottom.png")
 destination = pg.image.load("img/destination_light.png")
 turn_light = pg.image.load("img/turn_light.png")
 
+cpu_dice_rolled = False
 you_dice_rolled = False
 temppp = 0
 temp = 0
 turn = "you"
 speed = 2.1
 running = True
+player_dice1_moved = False
+player_dice2_moved = False
+light_trigerred = False
 
 
-print(stack1.connected)
+# print(stack1.connected)
 
 while running:
-    # print(len(white_light_pieces))
+    if turn == "you":
+        for i in all_stack_list:
+            for j in i.elements:
+                if j.id == "white":
+                    j.image = pg.image.load("img/white_got.png")
+
+    if light_trigerred == True:
+        light_white_keys(white_light_pieces)
+
+    # when turn of player is completed
+    if player_dice1_moved and player_dice2_moved:
+        light_trigerred = False
+        you_dice_rolled = False
+        player_dice1_moved = False
+        player_dice2_moved = False
+        for i in white_light_pieces:
+            i[1].image = pg.image.load("img/white_got.png")
+        white_light_pieces = []
+        white_legal_destination = []
+        turn = "cpu"
+        temp = 0
+        temppp = 0
+
+
+    if turn == "cpu":
+        L = []
+        for i in all_stack_list:
+            if len(i.elements) > 0:
+                light_piece = i.elements[-1]
+                if light_piece.id == "black":
+                    L.append([i, light_piece])
+        black_light_pieces = L
+
+
 
 
     mouse = pg.mouse.get_pos()
     click = pg.mouse.get_pressed()
-    print(mouse)
+    # print(mouse)
     screen.fill((0,0,0))
     screen.blit(background_image, (0,0))
     for event in pg.event.get():
@@ -470,16 +560,33 @@ while running:
 
         if event.type == pg.MOUSEBUTTONUP and turn == "you" and 840 <= mouse[0] <= 885 and 440 <= mouse[1] <= 560:
             if event.button == 1:
-                light_white_keys()
+                light_white_keys(white_light_pieces)
                 you_dice_rolled = True
+                light_trigerred = True
 
-        # if turn == "you" and len(white_light_pieces) > 0:
-        #     for i in white_light_pieces:
-        #         if event.type == pg.MOUSEBUTTONUP and click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0]+56 and i[1].co_ordinate[1] <= mouse[1] <= i[1].co_ordinate[1]+56:
-        #             if event.button == 1:
-        #                 turn = "cpu"
+        # step 5 (movement of player's pieces
+        for i in white_light_pieces:
+            player_dice = get_from_file()
+            if event.type == pg.KEYDOWN:
+                d1, d2 = i[0].location - dice_player[0], i[0].location - dice_player[1]
+                if click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0] + 56 and \
+                        i[1].co_ordinate[1] <= mouse[1] <= i[1].co_ordinate[1] + 56:
+                    if event.key == pg.K_m:
+                        if d1 > 0 and player_dice1_moved == False:
+                            print("M is pressed")
+                            if all_stack_dict[d1] in white_legal_destination:
+                                move(i[0], all_stack_dict[d1])
+                                light_white_keys(white_light_pieces)
+                                dice1.my_dice = pg.image.load(blank)
+                                player_dice1_moved = True
 
-
+                    if event.key == pg.K_SPACE:
+                        if d2 > 0 and player_dice2_moved == False:
+                            print("Space is pressed")
+                            if all_stack_dict[d2] in white_legal_destination:
+                                move(i[0], all_stack_dict[d2])
+                                dice2.my_dice = pg.image.load(blank)
+                                player_dice2_moved = True
 
 
     screen.blit(black_piece1.image, black_piece1.co_ordinate)
@@ -514,21 +621,63 @@ while running:
     screen.blit(white_piece14.image, white_piece14.co_ordinate)
     screen.blit(white_piece15.image, white_piece15.co_ordinate)
 
-    # to turn on the light of turn
+
     if turn == "you":
-        screen.blit(turn_light, (328, 6))
-    else:
-        screen.blit(turn_light, (490, 6))
+        #step 1 (turn on lights)
+        turn_on_the_turn_light(turn)
+
+        # step 2 (dice rolling)
+        if you_dice_rolled == False:
+            if 840 <= mouse[0] <= 885 and 440 <= mouse[1] <= 560:
+                screen.blit(active_dice_button, (840, 440))
+
+                if click[0] == 1:
+                    dice_value()
+            else:
+                screen.blit(inactive_dice_button, (840, 440))
+
+        #step 3 (lighting the pieces that are allowed to move)
+        L = []
+        for i in all_stack_list:
+            if len(i.elements) > 0:
+                light_piece = i.elements[-1]
+                if light_piece.id == "white":
+                    L.append([i, light_piece])
+        white_light_pieces = L
+
+        #step 4 (updating the allowed destinations and lighting them on click)
+        if you_dice_rolled == True and len(white_light_pieces) > 0:
+            temp_destination = []
+            dice_player = get_from_file()
+
+            for i in white_light_pieces:
+                d1, d2 = i[0].location - dice_player[0], i[0].location - dice_player[1]
+                if d1 > 0 and player_dice1_moved == False:
+                    if all_stack_dict[d1].checking_receiving_light("white") == "on":
+                        temp_destination.append(all_stack_dict[d1])
+                if d2 > 0 and player_dice2_moved == False:
+                    if all_stack_dict[d2].checking_receiving_light("white") == "on":
+                        temp_destination.append(all_stack_dict[d2])
+
+            white_legal_destination = temp_destination
+            print(white_legal_destination)
+
+            for i in white_light_pieces:
+
+                if click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0] + 56 and i[1].co_ordinate[
+                    1] <= mouse[1] <= i[1].co_ordinate[1] + 56:
+                    d1, d2 = i[0].location - dice_player[0], i[0].location - dice_player[1]
+                    if d1 > 0 and player_dice1_moved == False:
+                        all_stack_dict[d1].receiving_light("white")
+                    if d2 > 0 and player_dice2_moved == False:
+                        all_stack_dict[d2].receiving_light("white")
+
+        #step 5 (movement of pieces)
+            #ye uper event waly part mein horaha he line # 567 mein
 
 
-    if turn == "you" and you_dice_rolled == False:
-        if 840 <= mouse[0] <= 885 and 440 <= mouse[1] <= 560:
-            screen.blit(active_dice_button, (840, 440))
-            if click[0] == 1:
-                dice_value()
-        else:
-            screen.blit(inactive_dice_button, (840, 440))
-    elif turn == "cpu":
+    if turn == "cpu":
+        turn_on_the_turn_light(turn)
         if temp == 0:
             a = cpu_dice_value()
             if temppp != 20:
@@ -536,22 +685,26 @@ while running:
             else:
                 write_in_file(a, "txt/cpu_dice_saving.txt")
                 temp = 1
-                light_black_keys()
+                light_black_keys(black_light_pieces)
+                cpu_dice_rolled = True
+                turn = "you"
 
-    if turn == "you" and len(white_light_pieces) > 0 and you_dice_rolled == True:
-        dice_player = get_from_file()
+
+    if turn == "cpu" and len(black_light_pieces) > 0 and cpu_dice_rolled == True and False:
+        dice_player = get_from_file("txt/cpu_dice_saving.txt")
         print(dice_player)
-        for i in white_light_pieces:
-            if click[0] == 1 and i[1].co_ordinate[0] <= mouse[0] <= i[1].co_ordinate[0]+56 and i[1].co_ordinate[1] <= mouse[1] <= i[1].co_ordinate[1]+56:
-                d1 , d2 = i[0].location-dice_player[0] , i[0].location-dice_player[1]
-                if d1 > 0:
-                    all_stack_dict[d1].receiving_light()
-                else:
-                    print("no move possible for this piece")
-                if d2 > 0:
-                    all_stack_dict[d2].receiving_light()
-                else:
-                    print("no move possible for this piece")
+        for i in black_light_pieces:
+            d1, d2 = i[0].location+dice_player[0], i[0].location+dice_player[1]
+
+            if d1 < 25:
+                all_stack_dict[d1].receiving_light("black")
+            else:
+                print("no move possible for this piece")
+            if d2 < 25:
+                all_stack_dict[d2].receiving_light("black")
+            else:
+                print("no move possible for this piece")
+
 
     screen.blit(dice1.my_dice, (2, 650))
     screen.blit(dice2.my_dice, (2, 720))
@@ -561,9 +714,7 @@ while running:
 
     # screen.blit(destination, position(0, 7))
 
-
-
-
+    # print(black_light_pieces)
 
 
 
